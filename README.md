@@ -54,5 +54,46 @@ The tests check, among other things:
 - a perfect dictionary scores MMCS = 1;
 - an exact-reconstruction SAE recovers 100% of GPT-2's loss.
 
-**Results are pending.** Both experiments run on Colab, and the tables will be filled in from
-`results/`.
+## Results
+
+### Toy model (Tesla T4, [`results/toy_recovery.md`](results/toy_recovery.md))
+
+256 true features in d=64 (4× superposition), each active w.p. 0.02 (true L0 ≈ 5.1); SAEs with 512 latents, 3000 steps × 1024.
+
+| SAE | knob | L0 | FVU | MMCS | recovered (cos > 0.9) | dead latents |
+|---|---|---|---|---|---|---|
+| relu | λ=0.001 | 149.6 | 0.003 | 0.387 | 0% | 3% |
+| relu | λ=0.003 | 149.4 | 0.008 | 0.410 | 0% | 1% |
+| relu | λ=0.01 | 139.5 | 0.006 | 0.410 | 0% | 0% |
+| relu | λ=0.03 | 137.1 | 0.020 | 0.486 | 0% | 0% |
+| relu | λ=0.1 | 76.5 | 0.090 | 0.782 | 10% | 0% |
+| topk | k=2 | 2.0 | 0.332 | 0.995 | 100% | 50% |
+| topk | k=4 | 4.0 | 0.150 | 0.999 | 100% | 46% |
+| topk | k=6 | 6.0 | 0.120 | 0.998 | 100% | 34% |
+| topk | k=8 | 8.0 | 0.114 | 0.996 | 100% | 28% |
+| topk | k=16 | 16.0 | 0.098 | 0.974 | 100% | 28% |
+| batchtopk | k=2 | 2.0 | 0.314 | 0.947 | 83% | 52% |
+| batchtopk | k=4 | 4.0 | 0.243 | 0.903 | 61% | 50% |
+| batchtopk | k=6 | 6.0 | 0.196 | 0.904 | 68% | 54% |
+| batchtopk | k=8 | 8.0 | 0.170 | 0.902 | 74% | 53% |
+| batchtopk | k=16 | 16.0 | 0.136 | 0.753 | 30% | 45% |
+
+What it shows:
+- **TopK finds the ground-truth dictionary; L1 does not.** At every k from 2 to 16, TopK
+  recovers 100% of the 256 true features (MMCS ≥ 0.97). No L1 setting comes close: with
+  λ ≤ 0.03, L0 stays around 140–150 against a true L0 of about 5, the decoder learns dense
+  mixtures (MMCS ≈ 0.4) and nothing is recovered. Its FVU is the *lowest* in the table, so
+  reconstruction error alone would have ranked the worst dictionary first.
+- **Raising λ trades reconstruction for sparsity, slowly.** λ = 0.1 cuts L0 to 76 and
+  lifts MMCS to 0.78, but recovers only 10% of features while FVU is already worse than
+  TopK k = 8.
+- **BatchTopK is worse than TopK here.** It recovers 61–83% for k ≤ 8 and 30% at k = 16.
+  Sharing the k·B budget across the batch lets frequent-looking latents absorb several
+  features. On this data, where every input has about the same number of active features,
+  the per-sample constraint is the right prior.
+- **Dead latents are expected.** 512 latents for 256 true features means a perfect TopK
+  dictionary leaves about half unused, which is roughly what k = 2–4 shows.
+
+### GPT-2 layer 6
+
+Pending: the Colab run of `python -m sae.lm` has not finished yet.
