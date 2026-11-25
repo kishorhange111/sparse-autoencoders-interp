@@ -2,9 +2,9 @@
 
     python -m sae.lm --layer 6 --tokens 30_000_000 --out results
 
-Pipeline: stream OpenWebText-10k through GPT-2, take the residual stream after block
-``layer`` (non-BOS positions only), shuffle in a large activation buffer, and train each SAE
-variant on the same token budget. Evaluation on held-out text:
+Pipeline: stream 10k Pile documents (NeelNanda/pile-10k) through GPT-2, take the residual
+stream after block ``layer`` (non-BOS positions only), shuffle in a large activation
+buffer, and train each SAE variant on the same token budget. Evaluation on held-out text:
 
 - **FVU** and **L0**, the reconstruction-sparsity trade;
 - **CE loss recovered**: splice the SAE reconstruction into the forward pass in place of the
@@ -32,7 +32,9 @@ from .model import SAE, fvu
 def load_text(n_docs: int | None = None):
     from datasets import load_dataset
 
-    ds = load_dataset("stas/openwebtext-10k", split="train")
+    # A parquet dataset: script-based ones (e.g. stas/openwebtext-10k) no longer load in
+    # recent versions of ``datasets``.
+    ds = load_dataset("NeelNanda/pile-10k", split="train")
     docs = [d["text"] for d in ds]
     return docs[: n_docs or len(docs)]
 
