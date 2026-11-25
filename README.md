@@ -32,7 +32,7 @@ Also implemented:
   features of the best cosine with any decoder column) and the fraction recovered at
   cosine > 0.9, alongside L0, FVU and dead latents. It sweeps λ for the L1 SAE and k for
   the TopK variants.
-- **GPT-2** ([`lm.py`](src/sae/lm.py)): residual stream at layer 6 on OpenWebText-10k,
+- **GPT-2** ([`lm.py`](src/sae/lm.py)): residual stream at layer 6 on the first 10k documents of the Pile (`NeelNanda/pile-10k`),
   with 16× expansion (12,288 latents) and the same token budget for every variant. It
   reports FVU, L0, dead and dense latents, and **CE loss recovered**
   `(CE_zero − CE_sae) / (CE_zero − CE_clean)` with the reconstruction spliced in through a
