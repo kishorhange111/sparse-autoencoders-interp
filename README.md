@@ -96,4 +96,35 @@ What it shows:
 
 ### GPT-2 layer 6
 
-Pending: the Colab run of `python -m sae.lm` has not finished yet.
+Run on a Tesla T4 with `--tokens 1e7`: 10M training tokens per variant, about 12 minutes
+each, 12,288 latents. The rows are in
+[`results/gpt2_layer6/lm_runs.jsonl`](results/gpt2_layer6/lm_runs.jsonl). CE is
+next-token cross-entropy on held-out Pile documents: 3.511 clean, and 16.131 with the
+layer-6 residual zeroed.
+
+| SAE | knob | L0 | FVU | CE with SAE | CE loss recovered | dead latents |
+|---|---|---|---|---|---|---|
+| topk | k = 32 | 32.0 | **0.186** | **3.687** | **98.6%** | 0.9% |
+| batchtopk | k = 32 | 32.0 | 0.192 | 3.691 | 98.6% | **0.2%** |
+| relu (L1) | λ = 5 | 10.6 | 0.416 | 4.663 | 90.9% | **75.2%** |
+
+- **TopK and BatchTopK are close on real activations.** Both recover 98.6% of the loss at
+  L0 = 32. TopK reconstructs slightly better (FVU 0.186 against 0.192), and BatchTopK leaves
+  fewer latents dead (0.2% against 0.9%). The large BatchTopK deficit on the toy model did
+  not carry over: real tokens vary in how many features they carry, which is what a
+  batch-level budget allows for.
+- **The L1 SAE lost three quarters of its dictionary.** At λ = 5, 75% of latents never
+  fired on the evaluation tokens. It reconstructs much worse (FVU 0.42) and recovers 90.9%
+  of the loss. It also ran at a lower L0 (10.6), so this is not an equal-sparsity
+  comparison. That would need a sweep over λ, which was not run. AuxK, which revives dead
+  TopK latents, has no L1 counterpart here.
+- **The dashboards look like features.** These are top-activating contexts for 12 random
+  live latents per SAE ([TopK](results/gpt2_layer6/dashboards_topk_32.md),
+  [BatchTopK](results/gpt2_layer6/dashboards_batchtopk_32.md),
+  [L1](results/gpt2_layer6/dashboards_relu_5.md)). Some are clean single tokens, such as
+  the L1 latents for " make" and for " be" after "to". Some are topics, such as one for
+  US politics (" campaign", "White House", " aides"). Others mix things, such as a TopK latent that fires on version numbers ("ubuntu 11.10",
+  `version="1.0`) and code. This is a qualitative look at a random sample, not a measurement
+  of interpretability.
+- 10M tokens is short for SAEs of this size; published GPT-2 SAEs train on hundreds of
+  millions of tokens. These numbers compare the variants at one small budget.
